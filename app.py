@@ -1,60 +1,23 @@
 import random
 import streamlit as st
 
-def get_range_for_difficulty(difficulty: str):
-    if difficulty == "Easy":
-        return 1, 20
-    if difficulty == "Normal":
-        return 1, 100
-    if difficulty == "Hard":
-        return 1, 50
-    return 1, 100
+# FIX: Refactored core game logic out of app.py into logic_utils.py (with the
+# AI's help) so it can be unit-tested with pytest independently of the UI.
+from logic_utils import (
+    get_range_for_difficulty,
+    parse_guess,
+    check_guess,
+    update_score,
+)
 
-
-def parse_guess(raw: str):
-    if raw is None:
-        return False, None, "Enter a guess."
-
-    if raw == "":
-        return False, None, "Enter a guess."
-
-    try:
-        if "." in raw:
-            value = int(float(raw))
-        else:
-            value = int(raw)
-    except Exception:
-        return False, None, "That is not a number."
-
-    return True, value, None
-
-
-def check_guess(guess, secret):
-    if guess == secret:
-        return "Win", "🎉 Correct!"
-
-    if guess > secret:
-        return "Too High", "📈 Go LOWER!"
-    else:
-        return "Too Low", "📈 Go HIGHER!"
-
-
-def update_score(current_score: int, outcome: str, attempt_number: int):
-    if outcome == "Win":
-        points = 100 - 10 * (attempt_number + 1)
-        if points < 10:
-            points = 10
-        return current_score + points
-
-    if outcome == "Too High":
-        if attempt_number % 2 == 0:
-            return current_score + 5
-        return current_score - 5
-
-    if outcome == "Too Low":
-        return current_score - 5
-
-    return current_score
+# Hint message shown for each outcome. Logic (check_guess) decides the outcome;
+# the UI decides how to phrase it. "Too High" => the guess was above the secret
+# => tell the player to go LOWER.
+HINTS = {
+    "Win": "🎉 Correct!",
+    "Too High": "📈 Go LOWER!",
+    "Too Low": "📈 Go HIGHER!",
+}
 
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
@@ -153,6 +116,10 @@ with col2:
     new_game = st.button("New Game 🔁")
 
 # Handle new game button
+# FIX: The original New Game handler reset attempts/secret but never reset
+# `status` back to "playing", so the game-over guard kept firing and the board
+# stayed locked. AI pointed out the missing status reset; resetting it here
+# (plus history/hints) lets the player actually start a fresh game.
 if new_game:
     st.session_state.attempts = 0
     low, high = get_range_for_difficulty(difficulty)
@@ -184,7 +151,8 @@ if submit and raw_guess.strip():
         st.session_state.attempts += 1
         st.session_state.history.append(guess_int)
 
-        outcome, message = check_guess(guess_int, st.session_state.secret)
+        outcome = check_guess(guess_int, st.session_state.secret)
+        message = HINTS[outcome]
 
         # Store hint
         st.session_state.last_hint = message
@@ -208,6 +176,9 @@ if submit and raw_guess.strip():
         st.rerun()
 
 # Show saved hint while the game is still playing
+# FIX: The original code only drew the hint inside the submit branch, so
+# toggling "Show hint" did nothing. We now persist the hint in session state
+# (last_hint) and re-render it here based on the checkbox on every rerun.
 if st.session_state.status == "playing":
     if show_hint and st.session_state.last_hint and st.session_state.last_message != "Win":
         st.warning(st.session_state.last_hint)

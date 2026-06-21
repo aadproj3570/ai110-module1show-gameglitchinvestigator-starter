@@ -25,28 +25,37 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 📝 Document Your Experience
 
-- [ ] Describe the game's purpose.
-- [ ] Detail which bugs you found.
-- [ ] Explain what fixes you applied.
+- [x] **Purpose:** A Streamlit number-guessing game. The app picks a secret number within a range that depends on the chosen difficulty (Easy 1–20, Normal 1–100, Hard 1–50), and the player guesses until they find it or run out of attempts, getting "Too High / Too Low" hints and a running score.
+- [x] **Bugs found:**
+  1. Clicking "New Game" after winning/losing didn't restart the game — it stayed locked on the game-over screen (the status was never reset to `"playing"`).
+  2. The "Show hint" checkbox did nothing on its own; the hint only updated when you submitted again or toggled it off and back on (the hint was never saved to session state).
+  3. Pressing Enter in the guess box didn't register a guess — only the "Submit Guess" button worked (the input wasn't inside a form).
+- [x] **Fixes applied:** Reset `st.session_state.status` (and `history`/hints) inside the New Game handler; store the latest hint in `st.session_state.last_hint` and render it from session state based on the checkbox; wrap the input and submit button in an `st.form` so Enter and the button both submit a guess.
 
 ## 📸 Demo Walkthrough
 
-Describe your fixed game in numbered steps so a reader can follow along without watching a video:
+A sample game on **Normal** difficulty (secret number is between 1 and 100):
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. User selects **Normal** difficulty in the sidebar and reads "Guess a number between 1 and 100."
+2. User enters a guess of **40** → game responds **"Go HIGHER!"** (Too Low).
+3. User enters a guess of **70** → game responds **"Go LOWER!"** (Too High).
+4. The "Already guessed" list and attempts-left counter update after each guess, and the score updates correctly.
+5. User enters **63** (the secret) → game shows **"🎉 You won!"**, fires balloons, reveals the secret, and shows the final score.
+6. User clicks **"New Game 🔁"** → the board resets with a fresh secret number and the player can play again.
 
 **Screenshot** *(optional)*: <!-- Insert a screenshot of your fixed, winning game here -->
 
 ## 🧪 Test Results
 
 ```
-# Paste your pytest output here, e.g.:
-# pytest tests/
-# ========================= X passed in 0.XXs =========================
+$ python -m pytest tests/
+============================= test session starts =============================
+platform win32 -- Python 3.14.5, pytest-9.1.1, pluggy-1.6.0
+collected 6 items
+
+tests\test_game_logic.py ......                                          [100%]
+
+============================== 6 passed in 0.06s ==============================
 ```
 
 ## 🚀 Stretch Features
